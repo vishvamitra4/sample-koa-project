@@ -7,5 +7,10 @@ r.get("/api/status", (ctx, next) => {
 		message: "Backend API is operating normally"
 	};
 });
+r.get("/api/text",(ctx,next)=>{
+	ctx.body={
+		message: "test"
+	}
+})
 
 module.exports = r;
