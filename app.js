@@ -2,14 +2,29 @@ const _ = require("lodash")
 const path = require("path");
 const env = process.env.NODE_ENV || 'development';
 const config = require(`./config/env/${env}.config.json`);
+const utilities = require("./src/utilities");
+
+// initializing databases and clients
+let mongoConn = (new utilities.DBClient.MongoDB.Client(config.mongo_instances.primary_1, null)).connect();
+utilities.Registry.set("mongodb", mongoConn);
+
+// initializing models on the mongodb connection
+const schemaList = require("./src/models");
+utilities.Registry.set("schemas", schemaList);
+let models = {};
+_.each(schemaList, (value, key) => {
+	models[key] = mongoConn.model(key, value.schema);
+});
+utilities.Registry.set("models", models);
 
 const Koa = require('koa');
 const { koaBody } = require('koa-body');
 const app = new Koa();
 require('koa-qs')(app, 'extended');
 
+// koa body middleware
 app.use(koaBody());
-
+// CORS middleware
 app.use(async (ctx, next) => {
 	try {
 		ctx.set('Access-Control-Allow-Origin', '*');
@@ -26,7 +41,7 @@ app.use(async (ctx, next) => {
 		ctx.app.emit('error', error);
 	}
 });
-
+// route middleware and initialization
 const routesList = require('./src/routes');
 _.each(routesList, (router, key) => {
 	app.use(router.routes());
